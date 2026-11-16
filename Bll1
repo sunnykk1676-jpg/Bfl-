@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Loan Portal Link</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: system-ui, sans-serif;
+      background: #f1f5f9;
+      color: #172033;
+    }
+    main {
+      width: 100%;
+      max-width: 440px;
+      padding: 36px;
+      text-align: center;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 12px 32px #17203312;
+    }
+    p { line-height: 1.6; color: #526077; }
+    a {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 14px 24px;
+      border-radius: 8px;
+      background: #185adb;
+      color: white;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    a:hover { background: #1245aa; }
+    a:focus-visible { outline: 3px solid #172033; outline-offset: 4px; }
+    small { display: block; margin-top: 24px; color: #526077; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Loan Portal</h1>
+    <p>Use the button to visit the external loan portal.</p>
+
+    <!-- Replace this placeholder with your authorized portal URL.
+         Do not publish a private loan-specific link on a public site. -->
+    <a href="REPLACE_WITH_PORTAL_URL"
+       target="_blank"
+       rel="noopener noreferrer">
+      Open Loan Portal ↗
+    </a>
+
+    <small>
+      This page is only a link and does not collect loan information.
+      The portal opens in a new tab.
+    </small>
+  </main>
+</body>
+</html>
