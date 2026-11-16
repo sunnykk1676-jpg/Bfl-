@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Get a Loan Callback</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: system-ui, sans-serif;
+      background: #f1f5f9;
+      color: #172033;
+    }
+    main {
+      width: 100%;
+      max-width: 480px;
+      padding: 32px;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 12px 32px #17203312;
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    .sub { margin: 0 0 24px; line-height: 1.6; color: #526077; }
+    label { display: block; margin-top: 16px; font-weight: 600; font-size: .95rem; }
+    input, select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 12px;
+      font: inherit;
+      border: 1px solid #c3ccda;
+      border-radius: 8px;
+      background: white;
+      color: inherit;
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible {
+      outline: 3px solid #185adb;
+      outline-offset: 2px;
+    }
+    .consent {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-top: 20px;
+      font-weight: 400;
+      font-size: .85rem;
+      line-height: 1.5;
+      color: #526077;
+    }
+    .consent input { width: auto; margin-top: 3px; }
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      font: inherit;
+      font-weight: 600;
+      color: white;
+      background: #185adb;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #1245aa; }
+    button:disabled { background: #7f95c4; cursor: wait; }
+    #msg { margin-top: 16px; padding: 12px; border-radius: 8px; display: none; line-height: 1.5; }
+    #msg.ok { display: block; background: #e6f6ec; color: #14532d; }
+    #msg.err { display: block; background: #fdecec; color: #7f1d1d; }
+    .hp { position: absolute; left: -9999px; }
+    small { display: block; margin-top: 20px; color: #526077; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Get a free loan callback</h1>
+    <p class="sub">Tell us what you need. Our team will call you to explain your options.</p>
+
+    <form id="lead" novalidate>
+      <!-- Honeypot: real users never see or fill this -->
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <label for="name">Full name
+        <input id="name" name="name" type="text" autocomplete="name" required maxlength="80">
+      </label>
+
+      <label for="mobile">Mobile number
+        <input id="mobile" name="mobile" type="tel" inputmode="numeric"
+               autocomplete="tel-national" placeholder="10-digit number"
+               pattern="[6-9][0-9]{9}" maxlength="10" required>
+      </label>
+
+      <label for="city">City
+        <input id="city" name="city" type="text" autocomplete="address-level2" required maxlength="60">
+      </label>
+
+      <label for="loan_type">Loan type
+        <select id="loan_type" name="loan_type" required>
+          <option value="">Select</option>
+          <option>Personal Loan</option>
+          <option>Business Loan</option>
+          <option>Home Loan</option>
+          <option>Loan Against Property</option>
+          <option>Vehicle Loan</option>
+          <option>Credit Card</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label for="amount">Loan amount needed (₹)
+        <select id="amount" name="amount" required>
+          <option value="">Select</option>
+          <option>Below 1 lakh</option>
+          <option>1 – 5 lakh</option>
+          <option>5 – 25 lakh</option>
+          <option>25 lakh – 1 crore</option>
+          <option>Above 1 crore</option>
+        </select>
+      </label>
+
+      <label for="employment">Occupation
+        <select id="employment" name="employment" required>
+          <option value="">Select</option>
+          <option>Salaried</option>
+          <option>Self-employed</option>
+          <option>Business owner</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <label class="consent" for="consent">
+        <input id="consent" name="consent" type="checkbox" required>
+        <span>I agree to be contacted by call, SMS or WhatsApp about loan offers, and
+          that my details may be shared with partner lenders to process my request.</span>
+      </label>
+
+      <button id="submit" type="submit">Request callback</button>
+      <div id="msg" role="status" aria-live="polite"></div>
+    </form>
+
+    <small>
+      We never ask for OTPs, PAN, Aadhaar, bank passwords or any advance fee on this page.
+      Approval and terms are decided by the lender.
+      <!-- Add your business name, DSA / lender partner details and privacy policy link here. -->
+    </small>
+  </main>
+
+  <script>
+    // Set this to the URL that receives your leads (e.g. a Google Apps Script web app,
+    // Formspree, or your own API). It must accept a JSON POST.
+    // Without it, no data is sent anywhere.
+    const LEAD_ENDPOINT = "REPLACE_WITH_LEAD_ENDPOINT";
+
+    const form = document.getElementById("lead");
+    const msg = document.getElementById("msg");
+    const btn = document.getElementById("submit");
+
+    function show(type, text) {
+      msg.className = type;
+      msg.textContent = text;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.className = "";
+
+      const d = Object.fromEntries(new FormData(form));
+      if (d.website) return; // bot caught by honeypot
+
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      if (LEAD_ENDPOINT.startsWith("REPLACE_")) {
+        show("err", "This form is not connected yet. Please try again later.");
+        return;
+      }
+
+      const payload = {
+        name: d.name.trim(),
+        mobile: d.mobile,
+        city: d.city.trim(),
+        loan_type: d.loan_type,
+        amount: d.amount,
+        employment: d.employment,
+        consent: true,
+        consent_text_at: new Date().toISOString(),
+        source: new URLSearchParams(location.search).get("utm_source") || "direct",
+        campaign: new URLSearchParams(location.search).get("utm_campaign") || ""
+      };
+
+      btn.disabled = true;
+      try {
+        const res = await fetch(LEAD_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" }, // avoids CORS preflight on Apps Script
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("bad status");
+        form.reset();
+        show("ok", "Thank you! Our team will call you shortly.");
+      } catch (err) {
+        show("err", "Something went wrong. Please try again.");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
