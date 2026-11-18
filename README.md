@@ -75,3 +75,37 @@ directly before starting the server.
   to any third-party or bank website.
 - For production use, put this behind HTTPS and change the default admin
   credentials and session secret.
+- Application data is stored in a **Supabase** Postgres database (not a
+  local file), so it survives server restarts/redeploys on free hosting
+  tiers. See "Deploying" below.
+
+## Database setup (Supabase)
+
+1. Create a free project at [supabase.com](https://supabase.com) (or use
+   an existing one).
+2. In the Supabase SQL editor, run `supabase/migration.sql` from this repo
+   to create the `applications` table.
+3. In your Supabase project, go to **Settings → API** and copy:
+   - **Project URL** → `SUPABASE_URL`
+   - **service_role key** (secret, not the `anon` key) → `SUPABASE_SERVICE_ROLE_KEY`
+4. Set these as environment variables wherever you run the app (see
+   `.env.example`). The service role key is only ever used by the server —
+   it is never sent to the browser.
+
+## Deploying (Render — free tier)
+
+1. Push this repo to GitHub (already done if you're reading this on
+   GitHub).
+2. Go to [render.com](https://render.com) → **New → Web Service** → connect
+   this GitHub repository.
+3. Render will detect `render.yaml` and the Node app automatically
+   (build command `npm install`, start command `npm start`).
+4. Add the environment variables when prompted (or in the service's
+   **Environment** tab afterwards):
+   - `ADMIN_USER`, `ADMIN_PASS`, `SESSION_SECRET`
+   - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+5. Click **Create Web Service**. Render gives you a public URL like
+   `https://loan-status-portal.onrender.com` — share this with customers.
+
+Because data now lives in Supabase, it stays intact even when the free
+Render service sleeps and restarts.
