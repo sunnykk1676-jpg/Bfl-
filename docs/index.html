@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Loan Application Status Check</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    background: #f1f5f9;
+    color: #172033;
+  }
+  main {
+    width: 100%;
+    max-width: 460px;
+    padding: 32px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 6px;
+    text-align: center;
+  }
+  p.sub {
+    text-align: center;
+    color: #64748b;
+    margin: 0 0 24px;
+    font-size: 14px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #334155;
+  }
+  input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+  input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+  button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #93c5fd; cursor: not-allowed; }
+  #result {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 10px;
+    display: none;
+  }
+  #result.show { display: block; }
+  #result.ok { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  #result.err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+  .row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; }
+  .row span:first-child { color: #64748b; }
+  .status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .st-pending, .st-under-review { background: #f59e0b; }
+  .st-approved { background: #16a34a; }
+  .st-rejected { background: #dc2626; }
+  .st-disbursed { background: #2563eb; }
+  footer { text-align: center; margin-top: 20px; font-size: 12px; color: #94a3b8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Check Your Loan Application Status</h1>
+  <p class="sub">Enter your Application ID and registered mobile number</p>
+
+  <form id="statusForm">
+    <label for="applicationId">Application ID</label>
+    <input type="text" id="applicationId" placeholder="e.g. DSA1001" required />
+
+    <label for="mobile">Registered Mobile Number</label>
+    <input type="tel" id="mobile" placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required />
+
+    <button type="submit" id="submitBtn">Check Status</button>
+  </form>
+
+  <div id="result"></div>
+
+  <footer>&copy; 2026 — For support, contact your relationship manager.</footer>
+</main>
+
+<script>
+  const API_BASE = "https://nkdlofemywauvkhxgijy.supabase.co/functions/v1/portal";
+  const form = document.getElementById("statusForm");
+  const resultDiv = document.getElementById("result");
+  const submitBtn = document.getElementById("submitBtn");
+
+  function statusClass(status) {
+    return "st-" + status.toLowerCase().replace(/\s+/g, "-");
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const applicationId = document.getElementById("applicationId").value.trim();
+    const mobile = document.getElementById("mobile").value.trim();
+
+    resultDiv.className = "";
+    resultDiv.innerHTML = "";
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Checking...";
+
+    try {
+      const res = await fetch(API_BASE + "/api/status-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ applicationId, mobile }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        resultDiv.className = "show err";
+        resultDiv.textContent = data.error || "Something went wrong";
+      } else {
+        resultDiv.className = "show ok";
+        resultDiv.innerHTML = `
+          <div class="row"><span>Applicant</span><span>${data.customerName}</span></div>
+          <div class="row"><span>Loan Type</span><span>${data.loanType || "-"}</span></div>
+          <div class="row"><span>Loan Amount</span><span>₹${Number(data.loanAmount).toLocaleString("en-IN")}</span></div>
+          <div class="row"><span>Status</span><span class="status-badge ${statusClass(data.status)}">${data.status}</span></div>
+          <div class="row"><span>Remarks</span><span>${data.remarks || "-"}</span></div>
+          <div class="row"><span>Last Updated</span><span>${data.lastUpdated}</span></div>
+        `;
+      }
+    } catch (err) {
+      resultDiv.className = "show err";
+      resultDiv.textContent = "Network error. Please try again.";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Check Status";
+    }
+  });
+</script>
+</body>
+</html>

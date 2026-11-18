@@ -1,0 +1,14 @@
+{
+  "name": "loan-status-portal",
+  "version": "1.0.0",
+  "description": "DSA Loan Application Status Check Portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cookie-session": "^2.1.0",
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
