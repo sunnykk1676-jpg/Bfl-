@@ -129,7 +129,7 @@
         <thead>
           <tr>
             <th>App ID</th><th>Name</th><th>Mobile</th><th>Type</th><th>Amount</th>
-            <th>Status</th><th>Remarks</th><th>Updated</th><th>Actions</th>
+            <th>Status</th><th>Remarks</th><th>Updated</th><th>Verified (BFL portal)</th><th>Actions</th>
           </tr>
         </thead>
         <tbody id="appTableBody"></tbody>
@@ -224,8 +224,16 @@
         </td>
         <td>${a.remarks || "-"}</td>
         <td>${a.lastUpdated}</td>
+        <td>
+          ${a.verified
+            ? `<span class="status-badge st-approved">Verified</span><br><small>${a.verifiedDate || ""}${a.verifiedBy ? " · " + a.verifiedBy : ""}</small>`
+            : `<span class="status-badge st-pending">Not verified</span>`}
+        </td>
         <td class="actions">
           <button class="saveBtn" data-id="${a.applicationId}">Save</button>
+          ${a.verified
+            ? `<button class="secondary unverifyBtn" data-id="${a.applicationId}">Unverify</button>`
+            : `<button class="verifyBtn" data-id="${a.applicationId}">Mark Verified</button>`}
           <button class="danger deleteBtn" data-id="${a.applicationId}">Delete</button>
         </td>
       `;
@@ -240,6 +248,30 @@
           method: "PUT",
           headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
           body: JSON.stringify({ status: select.value }),
+        });
+        loadApplications();
+      });
+    });
+
+    document.querySelectorAll(".verifyBtn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const verifiedBy = prompt("Verified by (your name) — confirming you checked this on the BFL portal yourself:");
+        if (verifiedBy === null) return;
+        await fetch(`${API_BASE}/api/admin/applications/${encodeURIComponent(btn.dataset.id)}`, {
+          method: "PUT",
+          headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+          body: JSON.stringify({ verified: true, verifiedBy: verifiedBy || "" }),
+        });
+        loadApplications();
+      });
+    });
+
+    document.querySelectorAll(".unverifyBtn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        await fetch(`${API_BASE}/api/admin/applications/${encodeURIComponent(btn.dataset.id)}`, {
+          method: "PUT",
+          headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+          body: JSON.stringify({ verified: false }),
         });
         loadApplications();
       });

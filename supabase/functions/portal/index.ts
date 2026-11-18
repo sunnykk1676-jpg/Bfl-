@@ -49,6 +49,9 @@ function toApiShape(row: Record<string, unknown>) {
     status: row.status,
     remarks: row.remarks,
     lastUpdated: row.last_updated,
+    verified: row.verified,
+    verifiedDate: row.verified_date,
+    verifiedBy: row.verified_by,
   };
 }
 
@@ -446,6 +449,11 @@ Deno.serve(async (req: Request) => {
         if (body.loanType !== undefined) updates.loan_type = body.loanType;
         if (body.customerName !== undefined) updates.customer_name = body.customerName;
         if (body.mobile !== undefined) updates.mobile = body.mobile;
+        if (body.verified !== undefined) {
+          updates.verified = Boolean(body.verified);
+          updates.verified_date = body.verified ? new Date().toISOString().slice(0, 10) : null;
+          if (body.verifiedBy !== undefined) updates.verified_by = body.verifiedBy;
+        }
 
         const { data, error } = await supabase
           .from("applications")
