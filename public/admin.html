@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Admin — Loan Applications</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    background: #f1f5f9;
+    color: #172033;
+    padding: 24px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+
+  /* Login box */
+  #loginBox {
+    max-width: 380px;
+    margin: 60px auto;
+    background: #fff;
+    padding: 28px;
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  }
+  #loginBox h2 { margin-top: 0; font-size: 18px; }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  input, select {
+    width: 100%; padding: 10px; margin-bottom: 14px;
+    border: 1px solid #cbd5e1; border-radius: 8px; font-size: 14px;
+  }
+  button {
+    padding: 10px 16px; border: none; border-radius: 8px;
+    background: #2563eb; color: #fff; font-weight: 600; cursor: pointer; font-size: 14px;
+  }
+  button:hover { background: #1d4ed8; }
+  button.secondary { background: #64748b; }
+  button.danger { background: #dc2626; }
+  .err-msg { color: #dc2626; font-size: 13px; margin-bottom: 10px; }
+
+  /* Dashboard */
+  #dashboard { display: none; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #e2e8f0; }
+  th { color: #64748b; font-weight: 600; }
+  .status-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; color: #fff;
+  }
+  .st-pending, .st-under-review { background: #f59e0b; }
+  .st-approved { background: #16a34a; }
+  .st-rejected { background: #dc2626; }
+  .st-disbursed { background: #2563eb; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .actions button { padding: 5px 10px; font-size: 12px; margin-right: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="loginBox">
+    <h2>Admin Login</h2>
+    <div class="err-msg" id="loginErr"></div>
+    <label>Username</label>
+    <input type="text" id="username" />
+    <label>Password</label>
+    <input type="password" id="password" />
+    <button id="loginBtn">Login</button>
+  </div>
+
+  <div id="dashboard">
+    <div class="topbar">
+      <div>
+        <h1>Loan Applications — Admin</h1>
+        <p class="sub">Add new applications and update status</p>
+      </div>
+      <button class="secondary" id="logoutBtn">Logout</button>
+    </div>
+
+    <div class="card">
+      <h3>Add New Application</h3>
+      <div class="form-grid">
+        <div>
+          <label>Application ID</label>
+          <input type="text" id="newId" placeholder="DSA1003" />
+        </div>
+        <div>
+          <label>Customer Name</label>
+          <input type="text" id="newName" />
+        </div>
+        <div>
+          <label>Mobile Number</label>
+          <input type="text" id="newMobile" maxlength="10" />
+        </div>
+        <div>
+          <label>Loan Type</label>
+          <input type="text" id="newLoanType" placeholder="Business Loan / Personal Loan" />
+        </div>
+        <div>
+          <label>Loan Amount (₹)</label>
+          <input type="number" id="newAmount" />
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="newStatus">
+            <option>Pending</option>
+            <option>Under Review</option>
+            <option>Approved</option>
+            <option>Rejected</option>
+            <option>Disbursed</option>
+          </select>
+        </div>
+      </div>
+      <label>Remarks</label>
+      <input type="text" id="newRemarks" placeholder="Optional note" />
+      <button id="addBtn">Add Application</button>
+      <div class="err-msg" id="addErr"></div>
+    </div>
+
+    <div class="card">
+      <h3>All Applications</h3>
+      <table id="appTable">
+        <thead>
+          <tr>
+            <th>App ID</th><th>Name</th><th>Mobile</th><th>Type</th><th>Amount</th>
+            <th>Status</th><th>Remarks</th><th>Updated</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="appTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const loginBox = document.getElementById("loginBox");
+  const dashboard = document.getElementById("dashboard");
+
+  async function checkAuth() {
+    const r = await fetch("/api/admin/me");
+    const d = await r.json();
+    if (d.isAdmin) {
+      loginBox.style.display = "none";
+      dashboard.style.display = "block";
+      loadApplications();
+    } else {
+      loginBox.style.display = "block";
+      dashboard.style.display = "none";
+    }
+  }
+
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const errEl = document.getElementById("loginErr");
+    errEl.textContent = "";
+    const r = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (r.ok) {
+      checkAuth();
+    } else {
+      const d = await r.json();
+      errEl.textContent = d.error || "Login failed";
+    }
+  });
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    await fetch("/api/admin/logout", { method: "POST" });
+    checkAuth();
+  });
+
+  function statusClass(status) {
+    return "st-" + status.toLowerCase().replace(/\s+/g, "-");
+  }
+
+  async function loadApplications() {
+    const r = await fetch("/api/admin/applications");
+    const apps = await r.json();
+    const tbody = document.getElementById("appTableBody");
+    tbody.innerHTML = "";
+    apps.forEach((a) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${a.applicationId}</td>
+        <td>${a.customerName}</td>
+        <td>${a.mobile}</td>
+        <td>${a.loanType || "-"}</td>
+        <td>₹${Number(a.loanAmount).toLocaleString("en-IN")}</td>
+        <td>
+          <select data-id="${a.applicationId}" class="statusSelect">
+            ${["Pending","Under Review","Approved","Rejected","Disbursed"].map(s =>
+              `<option ${s === a.status ? "selected" : ""}>${s}</option>`).join("")}
+          </select>
+        </td>
+        <td>${a.remarks || "-"}</td>
+        <td>${a.lastUpdated}</td>
+        <td class="actions">
+          <button class="saveBtn" data-id="${a.applicationId}">Save</button>
+          <button class="danger deleteBtn" data-id="${a.applicationId}">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll(".saveBtn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.id;
+        const select = document.querySelector(`.statusSelect[data-id="${id}"]`);
+        await fetch(`/api/admin/applications/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: select.value }),
+        });
+        loadApplications();
+      });
+    });
+
+    document.querySelectorAll(".deleteBtn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete application " + btn.dataset.id + "?")) return;
+        await fetch(`/api/admin/applications/${btn.dataset.id}`, { method: "DELETE" });
+        loadApplications();
+      });
+    });
+  }
+
+  document.getElementById("addBtn").addEventListener("click", async () => {
+    const errEl = document.getElementById("addErr");
+    errEl.textContent = "";
+    const payload = {
+      applicationId: document.getElementById("newId").value.trim(),
+      customerName: document.getElementById("newName").value.trim(),
+      mobile: document.getElementById("newMobile").value.trim(),
+      loanType: document.getElementById("newLoanType").value.trim(),
+      loanAmount: document.getElementById("newAmount").value,
+      status: document.getElementById("newStatus").value,
+      remarks: document.getElementById("newRemarks").value.trim(),
+    };
+    const r = await fetch("/api/admin/applications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      errEl.textContent = d.error || "Failed to add";
+      return;
+    }
+    ["newId","newName","newMobile","newLoanType","newAmount","newRemarks"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    loadApplications();
+  });
+
+  checkAuth();
+</script>
+</body>
+</html>
