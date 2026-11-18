@@ -17,7 +17,6 @@
   h1 { font-size: 22px; margin-bottom: 4px; }
   .sub { color: #64748b; font-size: 14px; margin-bottom: 20px; }
 
-  /* Login box */
   #loginBox {
     max-width: 380px;
     margin: 60px auto;
@@ -41,7 +40,6 @@
   button.danger { background: #dc2626; }
   .err-msg { color: #dc2626; font-size: 13px; margin-bottom: 10px; }
 
-  /* Dashboard */
   #dashboard { display: none; }
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .card {
@@ -142,43 +140,62 @@
 </div>
 
 <script>
+  const API_BASE = "https://nkdlofemywauvkhxgijy.supabase.co/functions/v1/portal";
   const loginBox = document.getElementById("loginBox");
   const dashboard = document.getElementById("dashboard");
 
-  async function checkAuth() {
-    const r = await fetch("/api/admin/me");
-    const d = await r.json();
-    if (d.isAdmin) {
-      loginBox.style.display = "none";
-      dashboard.style.display = "block";
-      loadApplications();
-    } else {
-      loginBox.style.display = "block";
-      dashboard.style.display = "none";
-    }
+  function getCreds() {
+    try {
+      return {
+        user: sessionStorage.getItem("adminUser") || "",
+        pass: sessionStorage.getItem("adminPass") || "",
+      };
+    } catch (e) { return { user: "", pass: "" }; }
   }
+  function setCreds(user, pass) {
+    try { sessionStorage.setItem("adminUser", user); sessionStorage.setItem("adminPass", pass); } catch (e) {}
+  }
+  function clearCreds() {
+    try { sessionStorage.removeItem("adminUser"); sessionStorage.removeItem("adminPass"); } catch (e) {}
+  }
+  function authHeaders() {
+    const c = getCreds();
+    return { "x-admin-user": c.user, "x-admin-pass": c.pass };
+  }
+
+  async function checkAuth() {
+    const c = getCreds();
+    if (!c.user) { showLogin(); return; }
+    const r = await fetch(API_BASE + "/api/admin/applications", { headers: authHeaders() });
+    if (r.ok) { showDashboard(); loadApplications(); }
+    else { clearCreds(); showLogin(); }
+  }
+  function showLogin() { loginBox.style.display = "block"; dashboard.style.display = "none"; }
+  function showDashboard() { loginBox.style.display = "none"; dashboard.style.display = "block"; }
 
   document.getElementById("loginBtn").addEventListener("click", async () => {
     const username = document.getElementById("username").value;
     const password = document.getElementById("password").value;
     const errEl = document.getElementById("loginErr");
     errEl.textContent = "";
-    const r = await fetch("/api/admin/login", {
+    const r = await fetch(API_BASE + "/api/admin/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
     if (r.ok) {
-      checkAuth();
+      setCreds(username, password);
+      showDashboard();
+      loadApplications();
     } else {
       const d = await r.json();
       errEl.textContent = d.error || "Login failed";
     }
   });
 
-  document.getElementById("logoutBtn").addEventListener("click", async () => {
-    await fetch("/api/admin/logout", { method: "POST" });
-    checkAuth();
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    clearCreds();
+    showLogin();
   });
 
   function statusClass(status) {
@@ -186,7 +203,8 @@
   }
 
   async function loadApplications() {
-    const r = await fetch("/api/admin/applications");
+    const r = await fetch(API_BASE + "/api/admin/applications", { headers: authHeaders() });
+    if (!r.ok) { clearCreds(); showLogin(); return; }
     const apps = await r.json();
     const tbody = document.getElementById("appTableBody");
     tbody.innerHTML = "";
@@ -218,9 +236,9 @@
       btn.addEventListener("click", async () => {
         const id = btn.dataset.id;
         const select = document.querySelector(`.statusSelect[data-id="${id}"]`);
-        await fetch(`/api/admin/applications/${id}`, {
+        await fetch(`${API_BASE}/api/admin/applications/${encodeURIComponent(id)}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
           body: JSON.stringify({ status: select.value }),
         });
         loadApplications();
@@ -230,7 +248,10 @@
     document.querySelectorAll(".deleteBtn").forEach((btn) => {
       btn.addEventListener("click", async () => {
         if (!confirm("Delete application " + btn.dataset.id + "?")) return;
-        await fetch(`/api/admin/applications/${btn.dataset.id}`, { method: "DELETE" });
+        await fetch(`${API_BASE}/api/admin/applications/${encodeURIComponent(btn.dataset.id)}`, {
+          method: "DELETE",
+          headers: authHeaders(),
+        });
         loadApplications();
       });
     });
@@ -248,9 +269,9 @@
       status: document.getElementById("newStatus").value,
       remarks: document.getElementById("newRemarks").value.trim(),
     };
-    const r = await fetch("/api/admin/applications", {
+    const r = await fetch(API_BASE + "/api/admin/applications", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
       body: JSON.stringify(payload),
     });
     const d = await r.json();

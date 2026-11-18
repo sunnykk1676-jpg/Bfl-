@@ -10,17 +10,26 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
 const BASE = "/functions/v1/portal";
 
+// CORS: the browser pages are hosted elsewhere (e.g. GitHub Pages), not on
+// this Supabase domain, so every response needs these headers, and preflight
+// (OPTIONS) requests must be answered directly.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, x-admin-user, x-admin-pass",
+};
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
 
 function html(content: string) {
   return new Response(content, {
     status: 200,
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+    headers: { "Content-Type": "text/html; charset=utf-8", ...CORS_HEADERS },
   });
 }
 
@@ -353,6 +362,10 @@ Deno.serve(async (req: Request) => {
   const idx = path.indexOf("/portal");
   if (idx !== -1) path = path.slice(idx + "/portal".length);
   if (path === "") path = "/";
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
 
   if (req.method === "GET" && path === "/") return html(CUSTOMER_HTML);
   if (req.method === "GET" && path === "/admin") return html(ADMIN_HTML);

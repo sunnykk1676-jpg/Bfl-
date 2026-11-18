@@ -111,6 +111,7 @@
 </main>
 
 <script>
+  const API_BASE = "https://nkdlofemywauvkhxgijy.supabase.co/functions/v1/portal";
   const form = document.getElementById("statusForm");
   const resultDiv = document.getElementById("result");
   const submitBtn = document.getElementById("submitBtn");
@@ -130,7 +131,7 @@
     submitBtn.textContent = "Checking...";
 
     try {
-      const res = await fetch("/api/status-check", {
+      const res = await fetch(API_BASE + "/api/status-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ applicationId, mobile }),
